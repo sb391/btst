@@ -11,6 +11,7 @@ import type {
   TradeMatchResult
 } from "@/lib/types";
 import { prisma } from "@/server/db";
+import { toPrismaJson } from "@/server/prisma-json";
 
 export async function persistExtractedFields(
   caseId: string,
@@ -46,7 +47,7 @@ export async function persistBureauSummary(caseId: string, summary: BureauSummar
       score: summary.score ?? undefined,
       activeLoans: summary.activeLoans,
       overdueHistory: summary.overdueHistory,
-      dpdPatterns: summary.dpdPatterns,
+      dpdPatterns: toPrismaJson(summary.dpdPatterns),
       creditUtilization: summary.creditUtilization ?? undefined,
       unsecuredMix: summary.unsecuredMix,
       securedMix: summary.securedMix,
@@ -55,14 +56,14 @@ export async function persistBureauSummary(caseId: string, summary: BureauSummar
       settled: summary.settled,
       loanVintageMonths: summary.loanVintageMonths,
       extractionConfidence: summary.extractionConfidence,
-      processedPayload: summary
+      processedPayload: toPrismaJson(summary)
     },
     create: {
       caseId,
       score: summary.score ?? undefined,
       activeLoans: summary.activeLoans,
       overdueHistory: summary.overdueHistory,
-      dpdPatterns: summary.dpdPatterns,
+      dpdPatterns: toPrismaJson(summary.dpdPatterns),
       creditUtilization: summary.creditUtilization ?? undefined,
       unsecuredMix: summary.unsecuredMix,
       securedMix: summary.securedMix,
@@ -71,8 +72,8 @@ export async function persistBureauSummary(caseId: string, summary: BureauSummar
       settled: summary.settled,
       loanVintageMonths: summary.loanVintageMonths,
       extractionConfidence: summary.extractionConfidence,
-      rawPayload: summary,
-      processedPayload: summary
+      rawPayload: toPrismaJson(summary),
+      processedPayload: toPrismaJson(summary)
     }
   });
 }
@@ -87,14 +88,14 @@ export async function persistGstSummary(caseId: string, summary: GstSummary) {
       filingFrequency: summary.filingFrequency,
       filingRegularity: summary.filingRegularity,
       turnoverProxy: summary.turnoverProxy,
-      gstrTrends: summary.gstrTrends,
+      gstrTrends: toPrismaJson(summary.gstrTrends),
       taxPaymentConsistency: summary.taxPaymentConsistency,
       registrationAgeMonths: summary.registrationAgeMonths,
       state: summary.state,
       businessType: summary.businessType,
       healthScore: summary.healthScore,
-      rawResponse: summary.rawResponse,
-      processedResponse: summary.processedResponse
+      rawResponse: toPrismaJson(summary.rawResponse),
+      processedResponse: toPrismaJson(summary.processedResponse)
     },
     create: {
       caseId,
@@ -104,14 +105,14 @@ export async function persistGstSummary(caseId: string, summary: GstSummary) {
       filingFrequency: summary.filingFrequency,
       filingRegularity: summary.filingRegularity,
       turnoverProxy: summary.turnoverProxy,
-      gstrTrends: summary.gstrTrends,
+      gstrTrends: toPrismaJson(summary.gstrTrends),
       taxPaymentConsistency: summary.taxPaymentConsistency,
       registrationAgeMonths: summary.registrationAgeMonths,
       state: summary.state,
       businessType: summary.businessType,
       healthScore: summary.healthScore,
-      rawResponse: summary.rawResponse,
-      processedResponse: summary.processedResponse
+      rawResponse: toPrismaJson(summary.rawResponse),
+      processedResponse: toPrismaJson(summary.processedResponse)
     }
   });
 }
@@ -120,8 +121,8 @@ export async function persistBankAnalytics(caseId: string, analytics: BankAnalyt
   await prisma.bankAnalytics.upsert({
     where: { caseId },
     update: {
-      monthlyCredits: analytics.monthlyCredits,
-      monthlyDebits: analytics.monthlyDebits,
+      monthlyCredits: toPrismaJson(analytics.monthlyCredits),
+      monthlyDebits: toPrismaJson(analytics.monthlyDebits),
       cashDepositRatio: analytics.cashDepositRatio,
       chequeBounceCount: analytics.chequeBounceCount,
       emiBounceCount: analytics.emiBounceCount,
@@ -130,18 +131,18 @@ export async function persistBankAnalytics(caseId: string, analytics: BankAnalyt
       maxBalance: analytics.maxBalance,
       inwardConsistency: analytics.inwardConsistency,
       outwardConsistency: analytics.outwardConsistency,
-      topCounterparties: analytics.topCounterparties,
-      abnormalSpikes: analytics.abnormalSpikes,
-      seasonality: analytics.seasonality,
-      relatedPartySignals: analytics.relatedPartySignals,
+      topCounterparties: toPrismaJson(analytics.topCounterparties),
+      abnormalSpikes: toPrismaJson(analytics.abnormalSpikes),
+      seasonality: toPrismaJson(analytics.seasonality),
+      relatedPartySignals: toPrismaJson(analytics.relatedPartySignals),
       healthScore: analytics.healthScore,
       extractionConfidence: analytics.extractionConfidence,
-      processedPayload: analytics
+      processedPayload: toPrismaJson(analytics)
     },
     create: {
       caseId,
-      monthlyCredits: analytics.monthlyCredits,
-      monthlyDebits: analytics.monthlyDebits,
+      monthlyCredits: toPrismaJson(analytics.monthlyCredits),
+      monthlyDebits: toPrismaJson(analytics.monthlyDebits),
       cashDepositRatio: analytics.cashDepositRatio,
       chequeBounceCount: analytics.chequeBounceCount,
       emiBounceCount: analytics.emiBounceCount,
@@ -150,14 +151,14 @@ export async function persistBankAnalytics(caseId: string, analytics: BankAnalyt
       maxBalance: analytics.maxBalance,
       inwardConsistency: analytics.inwardConsistency,
       outwardConsistency: analytics.outwardConsistency,
-      topCounterparties: analytics.topCounterparties,
-      abnormalSpikes: analytics.abnormalSpikes,
-      seasonality: analytics.seasonality,
-      relatedPartySignals: analytics.relatedPartySignals,
+      topCounterparties: toPrismaJson(analytics.topCounterparties),
+      abnormalSpikes: toPrismaJson(analytics.abnormalSpikes),
+      seasonality: toPrismaJson(analytics.seasonality),
+      relatedPartySignals: toPrismaJson(analytics.relatedPartySignals),
       healthScore: analytics.healthScore,
       extractionConfidence: analytics.extractionConfidence,
-      rawPayload: analytics,
-      processedPayload: analytics
+      rawPayload: toPrismaJson(analytics),
+      processedPayload: toPrismaJson(analytics)
     }
   });
 }
@@ -177,19 +178,19 @@ export async function persistInvoiceSummary(caseId: string, invoice: InvoiceSumm
       supplierGstin: invoice.supplierGstin,
       buyerGstin: invoice.buyerGstin,
       taxableValue: invoice.taxableValue,
-      taxBreakup: invoice.taxBreakup,
+      taxBreakup: toPrismaJson(invoice.taxBreakup),
       totalValue: invoice.totalValue,
-      hsnSac: invoice.hsnSac,
-      lineItems: invoice.lineItems,
+      hsnSac: toPrismaJson(invoice.hsnSac),
+      lineItems: toPrismaJson(invoice.lineItems),
       vehicleNumber: invoice.vehicleNumber,
       eWayBillNumber: invoice.eWayBillNumber,
       completenessScore: invoice.completenessScore,
       authenticityScore: invoice.authenticityScore,
-      anomalyFlags: invoice.flags,
-      rawPayload: invoice,
-      processedPayload: {
+      anomalyFlags: toPrismaJson(invoice.flags),
+      rawPayload: toPrismaJson(invoice),
+      processedPayload: toPrismaJson({
         extractionConfidence: invoice.extractionConfidence
-      }
+      })
     }
   });
 }
@@ -204,10 +205,10 @@ export async function persistTradeMatch(caseId: string, tradeMatch: TradeMatchRe
       caseId,
       matchStatus: tradeMatch.status,
       score: tradeMatch.score,
-      checks: tradeMatch.checks,
+      checks: toPrismaJson(tradeMatch.checks),
       routePlausibility: tradeMatch.routePlausibility,
       historicalNote: tradeMatch.historicalRelationshipNote,
-      rawPayload: tradeMatch
+      rawPayload: toPrismaJson(tradeMatch)
     }
   });
 }
@@ -252,7 +253,7 @@ export async function persistUnderwritingOutputs(
       weight: score.weight,
       riskGrade: score.grade,
       rationale: score.rationale,
-      breakdown: score.breakdown
+      breakdown: toPrismaJson(score.breakdown)
     }))
   });
 
@@ -263,11 +264,11 @@ export async function persistUnderwritingOutputs(
       modelVersion: output.llmMemo.modelVersion,
       promptVersion: output.llmMemo.promptVersion,
       summary: output.llmMemo.summary,
-      strengths: output.llmMemo.strengths,
-      risks: output.llmMemo.risks,
-      contradictions: output.llmMemo.contradictions,
-      policyExceptions: output.llmMemo.policyExceptions,
-      nextQuestions: output.llmMemo.nextQuestions,
+      strengths: toPrismaJson(output.llmMemo.strengths),
+      risks: toPrismaJson(output.llmMemo.risks),
+      contradictions: toPrismaJson(output.llmMemo.contradictions),
+      policyExceptions: toPrismaJson(output.llmMemo.policyExceptions),
+      nextQuestions: toPrismaJson(output.llmMemo.nextQuestions),
       disclaimer: output.llmMemo.disclaimer
     }
   });

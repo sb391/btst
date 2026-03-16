@@ -29,7 +29,9 @@ function parseCsvRows(text: string): TransactionRow[] {
     .map((columns) => ({
       date: columns[dateIndex]?.trim() ?? "",
       description: columns[descriptionIndex]?.trim() ?? "Unknown",
-      type: columns[typeIndex]?.trim().toLowerCase() === "debit" ? "debit" : "credit",
+      type: (columns[typeIndex]?.trim().toLowerCase() === "debit" ? "debit" : "credit") as
+        | "credit"
+        | "debit",
       amount: safeNumber(columns[amountIndex]?.replace(/,/g, "")),
       balance: safeNumber(columns[balanceIndex]?.replace(/,/g, ""))
     }))

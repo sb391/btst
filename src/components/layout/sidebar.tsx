@@ -3,23 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Blocks,
   FileCheck2,
   FolderSearch2,
   LayoutDashboard,
-  Settings2,
-  ShieldCheck
+  Settings2
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { href: "/", label: "Intake", icon: LayoutDashboard },
-  { href: "/cases", label: "Case History", icon: FolderSearch2 },
-  { href: "/cases/case_demo_001", label: "Data Review", icon: Blocks },
-  { href: "/cases/case_demo_001/underwriting", label: "Underwriting", icon: ShieldCheck },
-  { href: "/cases/case_demo_001/trade-verification", label: "Trade Verify", icon: FileCheck2 },
-  { href: "/admin", label: "Admin", icon: Settings2 }
+  { href: "/", label: "New Review", icon: LayoutDashboard },
+  { href: "/reviews", label: "Review History", icon: FolderSearch2 },
+  { href: "/reviews/review_demo_001", label: "Demo Invoice", icon: FileCheck2 },
+  { href: "/settings", label: "Settings", icon: Settings2 }
 ];
 
 export function Sidebar() {
@@ -30,12 +26,12 @@ export function Sidebar() {
       <div className="space-y-8">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-teal-100/70">
-            Internal Underwriting Tool
+            Internal Analyst Tool
           </p>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Workbench</h1>
             <p className="mt-2 text-sm text-teal-50/70">
-              Credit underwriting and trade verification for Indian supply-chain finance.
+              Invoice OCR, validation, and analyst-assist review in one local-first workspace.
             </p>
           </div>
         </div>
@@ -69,7 +65,7 @@ export function Sidebar() {
           Warning
         </p>
         <p className="mt-2 text-sm text-teal-50/80">
-          Analyst-assist system only. Final decisioning must remain human-reviewed and auditable.
+          Analyst-assist system only. Outputs help review invoice quality and completeness, but do not replace analyst judgment.
         </p>
       </div>
     </aside>

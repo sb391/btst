@@ -17,8 +17,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Underwriting Intelligence Workbench",
-  description: "Local-first AI-assisted credit underwriting and trade verification workbench."
+  title: "Invoice Intelligence Workbench",
+  description: "Local-first invoice OCR, validation, and analyst-assist review workbench."
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

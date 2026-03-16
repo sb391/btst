@@ -16,14 +16,12 @@ export async function runCaseAnalysis(workspace: CaseWorkspaceData) {
       extractionConfidenceCandidates.length
     : 0.75;
 
-  const tradeMatch =
-    workspace.tradeMatch ??
-    computeTradeMatch({
-      invoice: workspace.invoiceSummary,
-      gstSummary: workspace.gstSummary,
-      buyerLegalName: workspace.borrower.legalName,
-      anchorName: workspace.borrower.anchorName
-    });
+  const tradeMatch = computeTradeMatch({
+    invoice: workspace.invoiceSummary,
+    gstSummary: workspace.gstSummary,
+    buyerLegalName: workspace.borrower.legalName,
+    anchorName: workspace.borrower.anchorName
+  });
 
   const fraudFlags = evaluateFraudFlags({
     invoice: workspace.invoiceSummary,

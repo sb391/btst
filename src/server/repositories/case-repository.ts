@@ -16,6 +16,11 @@ import type {
 } from "@/lib/types";
 import { adminIntegrationStatus, demoCaseList, demoCaseWorkspace } from "@/lib/demo-data";
 import { prisma } from "@/server/db";
+import {
+  getLocalAwareCaseList,
+  isLocalDemoCase,
+  loadLocalCaseWorkspace
+} from "@/server/services/local-case-store";
 
 function parseJsonArray<T>(value: unknown, fallback: T[]): T[] {
   return Array.isArray(value) ? (value as T[]) : fallback;
@@ -394,6 +399,39 @@ function mapAnalystDecision(record: {
 }
 
 export async function getAllCases(): Promise<CaseListItem[]> {
+  if (demoCaseList.length) {
+    const fallbackCases = await getLocalAwareCaseList();
+    try {
+      const cases = await prisma.underwritingCase.findMany({
+        include: {
+          borrower: true
+        },
+        orderBy: {
+          createdAt: "desc"
+        }
+      });
+
+      if (!cases.length) {
+        return fallbackCases;
+      }
+
+      return cases.map((item) => ({
+        caseId: item.id,
+        caseNumber: item.caseNumber,
+        createdAt: item.createdAt.toISOString(),
+        borrowerName: item.borrower.legalName,
+        borrowerType: item.borrower.borrowerType,
+        anchorName: item.borrower.anchorName ?? undefined,
+        score: Math.round(item.compositeScore ?? 0),
+        riskGrade: item.riskGrade ?? "E",
+        recommendation: item.recommendation ?? "REFER_TO_ANALYST",
+        status: item.status
+      }));
+    } catch {
+      return fallbackCases;
+    }
+  }
+
   try {
     const cases = await prisma.underwritingCase.findMany({
       include: {
@@ -426,8 +464,9 @@ export async function getAllCases(): Promise<CaseListItem[]> {
 }
 
 export async function getCaseWorkspace(caseId: string): Promise<CaseWorkspaceData> {
-  if (caseId === demoCaseWorkspace.caseId) {
-    return demoCaseWorkspace;
+  if (isLocalDemoCase(caseId)) {
+    const localWorkspace = await loadLocalCaseWorkspace(caseId);
+    return localWorkspace ?? demoCaseWorkspace;
   }
 
   try {

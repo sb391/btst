@@ -1,341 +1,404 @@
-import { PrismaClient } from "@prisma/client";
+import { readFile } from "node:fs/promises";
 
-import { availablePolicies, demoCaseWorkspace } from "../src/lib/demo-data";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+function stringifyJson(value: unknown) {
+  return JSON.stringify(value);
+}
+
 async function main() {
+  const mockInvoiceText = await readFile("public/demo/mock-invoice.txt", "utf8");
+
   await prisma.$transaction([
-    prisma.auditLog.deleteMany(),
-    prisma.analystNote.deleteMany(),
-    prisma.analystDecision.deleteMany(),
-    prisma.llmMemo.deleteMany(),
-    prisma.scoreSnapshot.deleteMany(),
-    prisma.fraudFlag.deleteMany(),
-    prisma.tradeVerification.deleteMany(),
-    prisma.invoiceRecord.deleteMany(),
-    prisma.bankAnalytics.deleteMany(),
-    prisma.gstSummary.deleteMany(),
-    prisma.bureauSummary.deleteMany(),
-    prisma.extractedField.deleteMany(),
-    prisma.uploadedDocument.deleteMany(),
-    prisma.repaymentOutcome.deleteMany(),
-    prisma.underwritingCase.deleteMany(),
-    prisma.borrower.deleteMany(),
-    prisma.user.deleteMany(),
-    prisma.policyConfig.deleteMany(),
-    prisma.modelVersion.deleteMany(),
-    prisma.promptVersion.deleteMany()
+    prisma.invoiceReviewAuditLog.deleteMany(),
+    prisma.invoiceReviewNote.deleteMany(),
+    prisma.invoiceAiReview.deleteMany(),
+    prisma.invoiceReviewScore.deleteMany(),
+    prisma.invoiceValidationResult.deleteMany(),
+    prisma.invoiceExtractedLineItem.deleteMany(),
+    prisma.invoiceExtractedField.deleteMany(),
+    prisma.invoiceReview.deleteMany(),
+    prisma.invoiceUploadedFile.deleteMany()
   ]);
 
-  const admin = await prisma.user.create({
+  const uploadedFile = await prisma.invoiceUploadedFile.create({
     data: {
-      email: "admin@local.internal",
-      name: "Local Admin",
-      role: "ADMIN"
+      id: "file_demo_invoice_001",
+      originalFileName: "mock-invoice.svg",
+      mimeType: "image/svg+xml",
+      sizeBytes: 0,
+      storagePath: "public/demo/mock-invoice.svg",
+      checksum: "demo-mock-invoice-svg",
+      pageCount: 1,
+      previewKind: "image",
+      uploadStatus: "COMPLETED"
     }
   });
 
-  const analyst = await prisma.user.create({
-    data: {
-      email: "analyst@local.internal",
-      name: "Local Analyst",
-      role: "ANALYST"
-    }
-  });
-
-  const policyRecords = await Promise.all(
-    availablePolicies.map((policy) =>
-      prisma.policyConfig.create({
-        data: {
-          name: `${policy.borrowerType} Underwriting Policy`,
-          borrowerType: policy.borrowerType,
-          version: policy.version,
-          weights: policy.weights,
-          rules: policy.rules,
-          active: true
-        }
-      })
-    )
-  );
-
-  const modelVersion = await prisma.modelVersion.create({
-    data: {
-      name: "mock-underwriting-llm",
-      version: demoCaseWorkspace.llmMemo.modelVersion,
-      description: "Mock provider for local MVP narrative generation.",
-      config: {
-        provider: "mock"
+  const normalizedPayload = {
+    supplier: {
+      name: "Deccan Industrial Supplies Pvt Ltd",
+      address: "14 Industrial Layout, Hosur Road, Bengaluru, Karnataka 560095",
+      gstin: "29AACCD1148P1ZX"
+    },
+    buyer: {
+      name: "Starline Retail Distributors LLP",
+      address: "102 Market Yard Road, Pune, Maharashtra 411037",
+      gstin: "27AATFS6621L1ZB"
+    },
+    invoiceNumber: "INV-2026-1148",
+    invoiceDate: "2026-03-13",
+    placeOfSupply: "Maharashtra",
+    poNumber: "PO-7743-26",
+    vehicleNumber: "MH12QX4431",
+    eWayBillNumber: "271008845612",
+    paymentTerms: "Net 21 days",
+    bankDetails: {
+      bankName: "State Bank of India",
+      accountNumber: "34022199088",
+      ifsc: "SBIN0000456"
+    },
+    signatureOrStamp: "present",
+    lineItems: [
+      {
+        lineNumber: 1,
+        description: "Refined cooking oil cartons",
+        quantity: 120,
+        unitPrice: 990,
+        taxableValue: 118800,
+        lineAmount: 118800,
+        hsnSac: "151211",
+        confidence: 0.9
       },
-      active: true
-    }
-  });
-
-  const promptVersion = await prisma.promptVersion.create({
-    data: {
-      name: "underwriting-memo",
-      version: demoCaseWorkspace.llmMemo.promptVersion,
-      template:
-        "Summarize strengths, risks, contradictions, policy exceptions, and next analyst questions from structured case evidence.",
-      config: {
-        temperature: 0.2
+      {
+        lineNumber: 2,
+        description: "Snack display units",
+        quantity: 24,
+        unitPrice: 583.33,
+        taxableValue: 13999.92,
+        lineAmount: 13999.92,
+        hsnSac: "940360",
+        confidence: 0.88
+      }
+    ],
+    taxDetails: {
+      taxableValue: 132799.92,
+      cgst: 11952,
+      sgst: 11952,
+      totalAmount: 156703.92,
+      amountInWords: "Rupees One Lakh Fifty Six Thousand Seven Hundred Four Only"
+    },
+    rawText: mockInvoiceText,
+    extractedFields: [
+      {
+        section: "Invoice metadata",
+        key: "invoice_number",
+        label: "Invoice Number",
+        value: "INV-2026-1148",
+        confidence: 0.94,
+        present: true,
+        source: "fixture"
       },
-      active: true
+      {
+        section: "Invoice metadata",
+        key: "invoice_date",
+        label: "Invoice Date",
+        value: "2026-03-13",
+        confidence: 0.93,
+        present: true,
+        source: "fixture"
+      },
+      {
+        section: "Supplier details",
+        key: "supplier_name",
+        label: "Supplier Name",
+        value: "Deccan Industrial Supplies Pvt Ltd",
+        confidence: 0.91,
+        present: true,
+        source: "fixture"
+      },
+      {
+        section: "Supplier details",
+        key: "supplier_gstin",
+        label: "Supplier GSTIN",
+        value: "29AACCD1148P1ZX",
+        confidence: 0.91,
+        present: true,
+        source: "fixture"
+      },
+      {
+        section: "Buyer details",
+        key: "buyer_name",
+        label: "Buyer Name",
+        value: "Starline Retail Distributors LLP",
+        confidence: 0.91,
+        present: true,
+        source: "fixture"
+      },
+      {
+        section: "Buyer details",
+        key: "buyer_gstin",
+        label: "Buyer GSTIN",
+        value: "27AATFS6621L1ZB",
+        confidence: 0.91,
+        present: true,
+        source: "fixture"
+      },
+      {
+        section: "Tax details",
+        key: "taxable_value",
+        label: "Taxable Value",
+        value: "132799.92",
+        confidence: 0.92,
+        present: true,
+        source: "fixture"
+      },
+      {
+        section: "Tax details",
+        key: "cgst",
+        label: "CGST",
+        value: "11952.00",
+        confidence: 0.9,
+        present: true,
+        source: "fixture"
+      },
+      {
+        section: "Tax details",
+        key: "sgst",
+        label: "SGST",
+        value: "11952.00",
+        confidence: 0.9,
+        present: true,
+        source: "fixture"
+      },
+      {
+        section: "Totals",
+        key: "total_amount",
+        label: "Total Amount",
+        value: "156703.92",
+        confidence: 0.92,
+        present: true,
+        source: "fixture"
+      }
+    ],
+    qualitySignals: {
+      lowReadability: false,
+      cutOffRisk: false,
+      rotated: false,
+      overlappingTextRisk: false,
+      likelyScanned: false,
+      noisyTokenRatio: 0.02
+    }
+  };
+
+  const review = await prisma.invoiceReview.create({
+    data: {
+      id: "review_demo_001",
+      reviewNumber: "INVREV-DEMO-001",
+      uploadedFileId: uploadedFile.id,
+      processingStatus: "COMPLETED",
+      ocrProviderKey: "demo-text-fixture",
+      ocrProviderMode: "fixture",
+      extractionVersion: "invoice-workbench-v1",
+      rawOcrText: mockInvoiceText,
+      rawOcrPayload: stringifyJson({
+        provider: "demo-text-fixture"
+      }),
+      normalizedPayload: stringifyJson(normalizedPayload),
+      summaryInvoiceNumber: "INV-2026-1148",
+      summaryInvoiceDate: new Date("2026-03-13T00:00:00.000Z"),
+      summarySupplierName: "Deccan Industrial Supplies Pvt Ltd",
+      summaryBuyerName: "Starline Retail Distributors LLP",
+      summaryTotalAmount: 156703.92,
+      extractionConfidenceScore: 91,
+      completenessScore: 93,
+      consistencyScore: 88,
+      riskScore: 18,
+      overallHealthStatus: "GOOD",
+      analystRecommendation: "LOOKS_IN_ORDER"
     }
   });
 
-  const borrower = await prisma.borrower.create({
+  await prisma.invoiceExtractedField.createMany({
+    data: [
+      {
+        reviewId: review.id,
+        section: "Invoice metadata",
+        fieldKey: "invoice_number",
+        label: "Invoice Number",
+        valueText: "INV-2026-1148",
+        confidence: 0.94,
+        isPresent: true,
+        source: "fixture"
+      },
+      {
+        reviewId: review.id,
+        section: "Supplier details",
+        fieldKey: "supplier_name",
+        label: "Supplier Name",
+        valueText: "Deccan Industrial Supplies Pvt Ltd",
+        confidence: 0.91,
+        isPresent: true,
+        source: "fixture"
+      },
+      {
+        reviewId: review.id,
+        section: "Buyer details",
+        fieldKey: "buyer_name",
+        label: "Buyer Name",
+        valueText: "Starline Retail Distributors LLP",
+        confidence: 0.91,
+        isPresent: true,
+        source: "fixture"
+      },
+      {
+        reviewId: review.id,
+        section: "Totals",
+        fieldKey: "total_amount",
+        label: "Total Amount",
+        valueText: "156703.92",
+        confidence: 0.92,
+        isPresent: true,
+        source: "fixture"
+      }
+    ]
+  });
+
+  await prisma.invoiceExtractedLineItem.createMany({
+    data: normalizedPayload.lineItems.map((item) => ({
+      reviewId: review.id,
+      lineNumber: item.lineNumber,
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      taxableValue: item.taxableValue,
+      lineAmount: item.lineAmount,
+      hsnSac: item.hsnSac,
+      confidence: item.confidence
+    }))
+  });
+
+  await prisma.invoiceValidationResult.createMany({
+    data: [
+      {
+        reviewId: review.id,
+        checkName: "invoice_number_present",
+        status: "PASS",
+        severity: "LOW",
+        message: "Invoice number is visible.",
+        impactedFields: stringifyJson(["invoice_number"])
+      },
+      {
+        reviewId: review.id,
+        checkName: "tax_math_consistent",
+        status: "PASS",
+        severity: "LOW",
+        message: "Tax arithmetic is internally consistent.",
+        impactedFields: stringifyJson(["taxable_value", "tax_fields", "total_amount"])
+      },
+      {
+        reviewId: review.id,
+        checkName: "eway_bill_present_or_not_required",
+        status: "PASS",
+        severity: "LOW",
+        message: "E-way bill is present or not obviously required.",
+        impactedFields: stringifyJson(["eway_bill_number"])
+      },
+      {
+        reviewId: review.id,
+        checkName: "scan_quality_acceptable",
+        status: "PASS",
+        severity: "LOW",
+        message: "Readability is acceptable for structured review.",
+        impactedFields: stringifyJson(["raw_ocr_text"])
+      }
+    ]
+  });
+
+  await prisma.invoiceReviewScore.createMany({
+    data: [
+      {
+        reviewId: review.id,
+        scoreKey: "EXTRACTION_CONFIDENCE",
+        label: "Extraction Confidence",
+        score: 91,
+        rationale: "OCR and field confidence are strong across the document.",
+        metadata: stringifyJson(["OCR readability is high.", "Most key fields were captured."])
+      },
+      {
+        reviewId: review.id,
+        scoreKey: "COMPLETENESS",
+        label: "Invoice Completeness",
+        score: 93,
+        rationale: "Core invoice fields and line items are present.",
+        metadata: stringifyJson(["Supplier, buyer, totals, taxes, and line items are visible."])
+      },
+      {
+        reviewId: review.id,
+        scoreKey: "CONSISTENCY",
+        label: "Invoice Consistency",
+        score: 88,
+        rationale: "Arithmetic and formatting are coherent.",
+        metadata: stringifyJson(["Tax math reconciles cleanly.", "No critical warning signals were triggered."])
+      },
+      {
+        reviewId: review.id,
+        scoreKey: "RISK",
+        label: "Invoice Risk",
+        score: 18,
+        rationale: "Only routine analyst review signals are present.",
+        metadata: stringifyJson(["Low residual risk after rule checks."])
+      }
+    ]
+  });
+
+  await prisma.invoiceAiReview.create({
     data: {
-      legalName: demoCaseWorkspace.borrower.legalName,
-      borrowerType: demoCaseWorkspace.borrower.borrowerType,
-      gstin: demoCaseWorkspace.borrower.gstin,
-      pan: demoCaseWorkspace.borrower.pan,
-      state: demoCaseWorkspace.borrower.state,
-      anchorName: demoCaseWorkspace.borrower.anchorName,
-      dealerCode: demoCaseWorkspace.borrower.dealerCode,
-      customerCode: demoCaseWorkspace.borrower.customerCode,
-      metadata: demoCaseWorkspace.borrower.metadata
-    }
-  });
-
-  const policy = policyRecords.find(
-    (record) => record.borrowerType === demoCaseWorkspace.borrower.borrowerType
-  );
-
-  const underwritingCase = await prisma.underwritingCase.create({
-    data: {
-      id: demoCaseWorkspace.caseId,
-      caseNumber: demoCaseWorkspace.caseNumber,
-      borrowerId: borrower.id,
-      status: "REVIEW",
-      requestedAmount: demoCaseWorkspace.decision.recommendedLimit,
-      requestedTenorDays: demoCaseWorkspace.decision.recommendedTenorDays,
-      compositeScore: demoCaseWorkspace.decision.compositeScore,
-      riskGrade: demoCaseWorkspace.decision.riskGrade,
-      recommendation: demoCaseWorkspace.decision.recommendation,
-      overallConfidence: demoCaseWorkspace.decision.confidence,
-      policyConfigId: policy?.id,
-      modelVersionId: modelVersion.id,
-      promptVersionId: promptVersion.id
-    }
-  });
-
-  await prisma.uploadedDocument.createMany({
-    data: demoCaseWorkspace.documents.map((document) => ({
-      id: document.id,
-      caseId: underwritingCase.id,
-      type: document.type,
-      status: document.status,
-      originalFileName: document.name,
-      mimeType: document.name.endsWith(".csv") ? "text/csv" : "application/pdf",
-      sizeBytes: 1200,
-      storagePath: `public/demo/${
-        document.name.endsWith(".csv")
-          ? "bank-statement.csv"
-          : document.type === "INVOICE"
-            ? "invoice.txt"
-            : document.type === "GST_PULL"
-              ? "gst-api-response.json"
-              : "bureau-report.txt"
-      }`,
-      extractionConfidence: document.extractionConfidence,
-      rawText: document.notes
-    }))
-  });
-
-  await prisma.extractedField.createMany({
-    data: demoCaseWorkspace.extractedFields.map((field) => ({
-      caseId: underwritingCase.id,
-      section: field.section,
-      fieldKey: field.field,
-      valueString: field.value,
-      confidence: field.confidence
-    }))
-  });
-
-  if (demoCaseWorkspace.bureauSummary) {
-    await prisma.bureauSummary.create({
-      data: {
-        caseId: underwritingCase.id,
-        score: demoCaseWorkspace.bureauSummary.score,
-        activeLoans: demoCaseWorkspace.bureauSummary.activeLoans,
-        overdueHistory: demoCaseWorkspace.bureauSummary.overdueHistory,
-        dpdPatterns: demoCaseWorkspace.bureauSummary.dpdPatterns,
-        creditUtilization: demoCaseWorkspace.bureauSummary.creditUtilization,
-        unsecuredMix: demoCaseWorkspace.bureauSummary.unsecuredMix,
-        securedMix: demoCaseWorkspace.bureauSummary.securedMix,
-        enquiryCount: demoCaseWorkspace.bureauSummary.enquiryCount,
-        writtenOff: demoCaseWorkspace.bureauSummary.writtenOff,
-        settled: demoCaseWorkspace.bureauSummary.settled,
-        loanVintageMonths: demoCaseWorkspace.bureauSummary.loanVintageMonths,
-        extractionConfidence: demoCaseWorkspace.bureauSummary.extractionConfidence,
-        rawPayload: demoCaseWorkspace.bureauSummary,
-        processedPayload: demoCaseWorkspace.bureauSummary
-      }
-    });
-  }
-
-  if (demoCaseWorkspace.gstSummary) {
-    await prisma.gstSummary.create({
-      data: {
-        caseId: underwritingCase.id,
-        legalName: demoCaseWorkspace.gstSummary.legalName,
-        gstin: demoCaseWorkspace.gstSummary.gstin,
-        status: demoCaseWorkspace.gstSummary.status,
-        filingFrequency: demoCaseWorkspace.gstSummary.filingFrequency,
-        filingRegularity: demoCaseWorkspace.gstSummary.filingRegularity,
-        turnoverProxy: demoCaseWorkspace.gstSummary.turnoverProxy,
-        gstrTrends: demoCaseWorkspace.gstSummary.gstrTrends,
-        taxPaymentConsistency: demoCaseWorkspace.gstSummary.taxPaymentConsistency,
-        registrationAgeMonths: demoCaseWorkspace.gstSummary.registrationAgeMonths,
-        state: demoCaseWorkspace.gstSummary.state,
-        businessType: demoCaseWorkspace.gstSummary.businessType,
-        healthScore: demoCaseWorkspace.gstSummary.healthScore,
-        rawResponse: demoCaseWorkspace.gstSummary.rawResponse,
-        processedResponse: demoCaseWorkspace.gstSummary.processedResponse
-      }
-    });
-  }
-
-  if (demoCaseWorkspace.bankAnalytics) {
-    await prisma.bankAnalytics.create({
-      data: {
-        caseId: underwritingCase.id,
-        monthlyCredits: demoCaseWorkspace.bankAnalytics.monthlyCredits,
-        monthlyDebits: demoCaseWorkspace.bankAnalytics.monthlyDebits,
-        cashDepositRatio: demoCaseWorkspace.bankAnalytics.cashDepositRatio,
-        chequeBounceCount: demoCaseWorkspace.bankAnalytics.chequeBounceCount,
-        emiBounceCount: demoCaseWorkspace.bankAnalytics.emiBounceCount,
-        averageBalance: demoCaseWorkspace.bankAnalytics.averageBalance,
-        minBalance: demoCaseWorkspace.bankAnalytics.minBalance,
-        maxBalance: demoCaseWorkspace.bankAnalytics.maxBalance,
-        inwardConsistency: demoCaseWorkspace.bankAnalytics.inwardConsistency,
-        outwardConsistency: demoCaseWorkspace.bankAnalytics.outwardConsistency,
-        topCounterparties: demoCaseWorkspace.bankAnalytics.topCounterparties,
-        abnormalSpikes: demoCaseWorkspace.bankAnalytics.abnormalSpikes,
-        seasonality: demoCaseWorkspace.bankAnalytics.seasonality,
-        relatedPartySignals: demoCaseWorkspace.bankAnalytics.relatedPartySignals,
-        healthScore: demoCaseWorkspace.bankAnalytics.healthScore,
-        extractionConfidence: demoCaseWorkspace.bankAnalytics.extractionConfidence,
-        rawPayload: demoCaseWorkspace.bankAnalytics,
-        processedPayload: demoCaseWorkspace.bankAnalytics
-      }
-    });
-  }
-
-  if (demoCaseWorkspace.invoiceSummary) {
-    await prisma.invoiceRecord.create({
-      data: {
-        caseId: underwritingCase.id,
-        invoiceNumber: demoCaseWorkspace.invoiceSummary.invoiceNumber,
-        invoiceDate: new Date(demoCaseWorkspace.invoiceSummary.invoiceDate),
-        supplierName: demoCaseWorkspace.invoiceSummary.supplierName,
-        buyerName: demoCaseWorkspace.invoiceSummary.buyerName,
-        supplierGstin: demoCaseWorkspace.invoiceSummary.supplierGstin,
-        buyerGstin: demoCaseWorkspace.invoiceSummary.buyerGstin,
-        taxableValue: demoCaseWorkspace.invoiceSummary.taxableValue,
-        taxBreakup: demoCaseWorkspace.invoiceSummary.taxBreakup,
-        totalValue: demoCaseWorkspace.invoiceSummary.totalValue,
-        hsnSac: demoCaseWorkspace.invoiceSummary.hsnSac,
-        lineItems: demoCaseWorkspace.invoiceSummary.lineItems,
-        vehicleNumber: demoCaseWorkspace.invoiceSummary.vehicleNumber,
-        eWayBillNumber: demoCaseWorkspace.invoiceSummary.eWayBillNumber,
-        completenessScore: demoCaseWorkspace.invoiceSummary.completenessScore,
-        authenticityScore: demoCaseWorkspace.invoiceSummary.authenticityScore,
-        anomalyFlags: demoCaseWorkspace.invoiceSummary.flags,
-        rawPayload: demoCaseWorkspace.invoiceSummary,
-        processedPayload: {
-          extractionConfidence: demoCaseWorkspace.invoiceSummary.extractionConfidence
-        }
-      }
-    });
-  }
-
-  if (demoCaseWorkspace.tradeMatch) {
-    await prisma.tradeVerification.create({
-      data: {
-        caseId: underwritingCase.id,
-        matchStatus: demoCaseWorkspace.tradeMatch.status,
-        score: demoCaseWorkspace.tradeMatch.score,
-        checks: demoCaseWorkspace.tradeMatch.checks,
-        routePlausibility: demoCaseWorkspace.tradeMatch.routePlausibility,
-        historicalNote: demoCaseWorkspace.tradeMatch.historicalRelationshipNote,
-        rawPayload: demoCaseWorkspace.tradeMatch
-      }
-    });
-  }
-
-  await prisma.fraudFlag.createMany({
-    data: demoCaseWorkspace.fraudFlags.map((flag) => ({
-      caseId: underwritingCase.id,
-      module: flag.module,
-      code: flag.code,
-      severity: flag.severity,
-      reason: flag.reason
-    }))
-  });
-
-  await prisma.scoreSnapshot.createMany({
-    data: demoCaseWorkspace.scores.map((score) => ({
-      caseId: underwritingCase.id,
-      kind: score.key,
-      score: score.score,
-      weight: score.weight,
-      riskGrade: score.grade,
-      rationale: score.rationale,
-      breakdown: score.breakdown
-    }))
-  });
-
-  await prisma.llmMemo.create({
-    data: {
-      caseId: underwritingCase.id,
+      reviewId: review.id,
       provider: "mock",
-      modelVersion: demoCaseWorkspace.llmMemo.modelVersion,
-      promptVersion: demoCaseWorkspace.llmMemo.promptVersion,
-      summary: demoCaseWorkspace.llmMemo.summary,
-      strengths: demoCaseWorkspace.llmMemo.strengths,
-      risks: demoCaseWorkspace.llmMemo.risks,
-      contradictions: demoCaseWorkspace.llmMemo.contradictions,
-      policyExceptions: demoCaseWorkspace.llmMemo.policyExceptions,
-      nextQuestions: demoCaseWorkspace.llmMemo.nextQuestions,
-      disclaimer: demoCaseWorkspace.llmMemo.disclaimer
+      model: "template-analyst-v1",
+      promptVersion: "invoice-review-v1",
+      visibleFacts: stringifyJson([
+        "Supplier and buyer identities are fully visible.",
+        "Line items, taxes, logistics, and bank details are present."
+      ]),
+      missingFields: stringifyJson([]),
+      suspiciousSignals: stringifyJson([]),
+      uncertaintyNotes: stringifyJson([]),
+      internalCoherence: "The invoice looks structurally normal and totals reconcile cleanly.",
+      summary: "The seeded demo invoice appears complete, internally consistent, and business-like.",
+      recommendedAction: "Looks In Order",
+      rawResponse: stringifyJson({
+        mode: "template"
+      })
     }
   });
 
-  await prisma.analystDecision.create({
+  await prisma.invoiceReviewNote.create({
     data: {
-      caseId: underwritingCase.id,
-      analystId: analyst.id,
-      recommendation: demoCaseWorkspace.analystDecision.recommendation ?? "REFER_TO_ANALYST",
-      overrideReason: demoCaseWorkspace.analystDecision.overrideReason,
-      approvedLimit: demoCaseWorkspace.analystDecision.approvedLimit,
-      approvedTenorDays: demoCaseWorkspace.analystDecision.approvedTenorDays,
-      pricingBand: demoCaseWorkspace.analystDecision.pricingBand,
-      collateralRequirement: demoCaseWorkspace.analystDecision.collateralRequirement
+      reviewId: review.id,
+      authorName: "Demo Analyst",
+      body: "Seeded demo review for local testing."
     }
   });
 
-  await prisma.analystNote.createMany({
-    data: demoCaseWorkspace.analystDecision.analystNotes.map((note) => ({
-      caseId: underwritingCase.id,
-      authorId: analyst.id,
-      body: note
-    }))
-  });
-
-  await prisma.auditLog.createMany({
-    data: demoCaseWorkspace.timeline.map((item) => ({
-      caseId: underwritingCase.id,
-      actorId: admin.id,
-      action: item.title,
-      entityType: "UnderwritingCase",
-      entityId: underwritingCase.id,
-      metadata: {
-        detail: item.detail,
-        timestamp: item.timestamp
+  await prisma.invoiceReviewAuditLog.createMany({
+    data: [
+      {
+        reviewId: review.id,
+        action: "SEEDED_REVIEW_CREATED",
+        entityType: "InvoiceReview",
+        entityId: review.id
+      },
+      {
+        reviewId: review.id,
+        action: "SEEDED_FILE_REGISTERED",
+        entityType: "InvoiceUploadedFile",
+        entityId: uploadedFile.id
       }
-    }))
+    ]
   });
 }
 

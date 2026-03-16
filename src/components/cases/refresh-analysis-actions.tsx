@@ -22,23 +22,23 @@ export function RefreshAnalysisActions({ caseId }: { caseId: string }) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
+    <div className="flex flex-col gap-2 lg:items-end">
       <div className="flex flex-wrap gap-3">
         <Button
           type="button"
           variant="secondary"
           disabled={isPending}
-          onClick={() => startTransition(() => call(`/api/cases/${caseId}/underwrite`, "Underwriting analysis refreshed."))}
+          onClick={() => startTransition(() => call(`/api/cases/${caseId}/underwrite`, "Combined intelligence rebuilt."))}
         >
-          Refresh underwriting
+          Build collective intelligence
         </Button>
         <Button
           type="button"
           variant="outline"
           disabled={isPending}
-          onClick={() => startTransition(() => call(`/api/cases/${caseId}/trade-verify`, "Trade verification refreshed."))}
+          onClick={() => startTransition(() => call(`/api/cases/${caseId}/trade-verify`, "Invoice and trade checks refreshed."))}
         >
-          Refresh trade checks
+          Refresh invoice and trade checks
         </Button>
       </div>
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}

@@ -1,6 +1,10 @@
 import type { GstSummary, InvoiceSummary, TradeCheck, TradeMatchResult } from "@/lib/types";
 import { clamp } from "@/lib/utils";
 
+function isKnownValue(value?: string) {
+  return Boolean(value && !/^unknown/i.test(value));
+}
+
 export function computeTradeMatch(input: {
   invoice?: InvoiceSummary;
   gstSummary?: GstSummary;
@@ -26,6 +30,61 @@ export function computeTradeMatch(input: {
   }
 
   const invoice = input.invoice;
+  const hasInvoiceNumber = invoice.invoiceNumber !== "UNKNOWN-INVOICE";
+  const hasSupplierIdentity = isKnownValue(invoice.supplierName) || Boolean(invoice.supplierGstin);
+  const hasBuyerIdentity = isKnownValue(invoice.buyerName) || Boolean(invoice.buyerGstin);
+  const hasCommercialValues = invoice.taxableValue > 0 && invoice.totalValue > 0;
+  const weakInvoiceEvidence =
+    invoice.extractionConfidence < 0.65 ||
+    invoice.authenticityScore < 55 ||
+    !hasInvoiceNumber ||
+    !hasSupplierIdentity ||
+    !hasBuyerIdentity ||
+    !hasCommercialValues;
+
+  if (weakInvoiceEvidence) {
+    return {
+      status: "INSUFFICIENT_DATA",
+      score: clamp(
+        (hasInvoiceNumber ? 12 : 0) +
+          (hasSupplierIdentity ? 12 : 0) +
+          (hasBuyerIdentity ? 12 : 0) +
+          (hasCommercialValues ? 18 : 0) +
+          (invoice.eWayBillNumber || invoice.vehicleNumber ? 10 : 0),
+        0,
+        45
+      ),
+      checks: [
+        {
+          label: "Document readability",
+          status: invoice.extractionConfidence >= 0.65 ? "partial" : "missing",
+          detail:
+            invoice.extractionConfidence >= 0.65
+              ? "The invoice is partially readable, but not strong enough for reliable trade verification."
+              : "Invoice extraction confidence is low, so trade matching cannot be trusted yet."
+        },
+        {
+          label: "Core invoice identity",
+          status: hasSupplierIdentity && hasBuyerIdentity ? "partial" : "missing",
+          detail:
+            hasSupplierIdentity && hasBuyerIdentity
+              ? "Some supplier and buyer identifiers were found, but they are not strong enough for a confident match."
+              : "Supplier and buyer identity could not be established from the invoice."
+        },
+        {
+          label: "Commercial values",
+          status: hasCommercialValues ? "partial" : "missing",
+          detail:
+            hasCommercialValues
+              ? "Some numeric values are present, but overall invoice quality remains weak."
+              : "Taxable value and total value were not extracted reliably."
+        }
+      ],
+      routePlausibility: "Route plausibility is withheld until the invoice extract is stronger.",
+      historicalRelationshipNote: "Historical trade interpretation is withheld because the invoice evidence is incomplete."
+    };
+  }
+
   const identityMatch = input.gstSummary
     ? invoice.buyerGstin === input.gstSummary.gstin || invoice.buyerName.includes(input.gstSummary.legalName)
     : false;
@@ -59,7 +118,10 @@ export function computeTradeMatch(input: {
 
   checks.push({
     label: "Commercial relationship",
-    status: input.anchorName && invoice.supplierName.toLowerCase().includes(input.anchorName.toLowerCase().split(" ")[0]) ? "match" : "partial",
+    status:
+      input.anchorName && isKnownValue(invoice.supplierName) && invoice.supplierName.toLowerCase().includes(input.anchorName.toLowerCase().split(" ")[0])
+        ? "match"
+        : "partial",
     detail:
       input.anchorName
         ? `Supplier naming is directionally consistent with anchor ${input.anchorName}.`

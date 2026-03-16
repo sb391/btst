@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600">
+  <rect width="1200" height="1600" fill="#f7f3eb"/>
+  <rect x="48" y="48" width="1104" height="1504" rx="28" fill="#ffffff" stroke="#d7d2c7" stroke-width="4"/>
+  <text x="88" y="120" font-size="34" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">TAX INVOICE</text>
+  <text x="88" y="168" font-size="18" font-family="Arial, sans-serif" fill="#4b5a61">Deccan Industrial Supplies Pvt Ltd</text>
+  <text x="88" y="196" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">14 Industrial Layout, Hosur Road, Bengaluru, Karnataka 560095</text>
+  <text x="88" y="224" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">GSTIN: 29AACCD1148P1ZX</text>
+
+  <text x="760" y="132" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">Invoice Number</text>
+  <text x="760" y="158" font-size="22" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">INV-2026-1148</text>
+  <text x="760" y="202" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">Invoice Date</text>
+  <text x="760" y="228" font-size="22" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">13/03/2026</text>
+  <text x="760" y="272" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">PO Number</text>
+  <text x="760" y="298" font-size="22" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">PO-7743-26</text>
+
+  <rect x="88" y="280" width="1024" height="170" rx="18" fill="#f2efe8"/>
+  <text x="112" y="324" font-size="17" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">Bill To</text>
+  <text x="112" y="356" font-size="18" font-family="Arial, sans-serif" fill="#16313b">Starline Retail Distributors LLP</text>
+  <text x="112" y="384" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">102 Market Yard Road, Pune, Maharashtra 411037</text>
+  <text x="112" y="412" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">GSTIN: 27AATFS6621L1ZB</text>
+  <text x="700" y="324" font-size="17" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">Logistics</text>
+  <text x="700" y="356" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">Vehicle: MH12QX4431</text>
+  <text x="700" y="384" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">E-Way Bill: 271008845612</text>
+  <text x="700" y="412" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">Place of Supply: Maharashtra</text>
+
+  <rect x="88" y="496" width="1024" height="60" rx="14" fill="#16313b"/>
+  <text x="112" y="534" font-size="16" font-family="Arial, sans-serif" font-weight="700" fill="#f7f3eb">Description</text>
+  <text x="710" y="534" font-size="16" font-family="Arial, sans-serif" font-weight="700" fill="#f7f3eb">Qty</text>
+  <text x="808" y="534" font-size="16" font-family="Arial, sans-serif" font-weight="700" fill="#f7f3eb">Rate</text>
+  <text x="944" y="534" font-size="16" font-family="Arial, sans-serif" font-weight="700" fill="#f7f3eb">Amount</text>
+  <text x="1052" y="534" font-size="16" font-family="Arial, sans-serif" font-weight="700" fill="#f7f3eb">HSN</text>
+
+  <rect x="88" y="568" width="1024" height="72" rx="12" fill="#fbfaf7" stroke="#ebe5d8"/>
+  <text x="112" y="612" font-size="16" font-family="Arial, sans-serif" fill="#16313b">Refined cooking oil cartons</text>
+  <text x="710" y="612" font-size="16" font-family="Arial, sans-serif" fill="#16313b">120</text>
+  <text x="808" y="612" font-size="16" font-family="Arial, sans-serif" fill="#16313b">990.00</text>
+  <text x="944" y="612" font-size="16" font-family="Arial, sans-serif" fill="#16313b">118800.00</text>
+  <text x="1052" y="612" font-size="16" font-family="Arial, sans-serif" fill="#16313b">151211</text>
+
+  <rect x="88" y="652" width="1024" height="72" rx="12" fill="#fbfaf7" stroke="#ebe5d8"/>
+  <text x="112" y="696" font-size="16" font-family="Arial, sans-serif" fill="#16313b">Snack display units</text>
+  <text x="710" y="696" font-size="16" font-family="Arial, sans-serif" fill="#16313b">24</text>
+  <text x="808" y="696" font-size="16" font-family="Arial, sans-serif" fill="#16313b">583.33</text>
+  <text x="944" y="696" font-size="16" font-family="Arial, sans-serif" fill="#16313b">13999.92</text>
+  <text x="1052" y="696" font-size="16" font-family="Arial, sans-serif" fill="#16313b">940360</text>
+
+  <rect x="644" y="782" width="468" height="286" rx="18" fill="#f7f3eb" stroke="#e7dfcf"/>
+  <text x="676" y="840" font-size="18" font-family="Arial, sans-serif" fill="#4b5a61">Taxable Value</text>
+  <text x="1016" y="840" font-size="18" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">132799.92</text>
+  <text x="676" y="892" font-size="18" font-family="Arial, sans-serif" fill="#4b5a61">CGST</text>
+  <text x="1016" y="892" font-size="18" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">11952.00</text>
+  <text x="676" y="944" font-size="18" font-family="Arial, sans-serif" fill="#4b5a61">SGST</text>
+  <text x="1016" y="944" font-size="18" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">11952.00</text>
+  <line x1="676" y1="980" x2="1080" y2="980" stroke="#d1c8b6" stroke-width="2"/>
+  <text x="676" y="1036" font-size="22" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">Grand Total</text>
+  <text x="980" y="1036" font-size="22" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">156703.92</text>
+
+  <text x="88" y="852" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">Payment Terms: Net 21 days</text>
+  <text x="88" y="900" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">Amount In Words: Rupees One Lakh Fifty Six Thousand Seven Hundred Four Only</text>
+
+  <rect x="88" y="972" width="468" height="190" rx="18" fill="#fbfaf7" stroke="#ebe5d8"/>
+  <text x="112" y="1022" font-size="17" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">Bank Details</text>
+  <text x="112" y="1062" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">State Bank of India</text>
+  <text x="112" y="1092" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">Account Number: 34022199088</text>
+  <text x="112" y="1122" font-size="16" font-family="Arial, sans-serif" fill="#4b5a61">IFSC: SBIN0000456</text>
+
+  <text x="880" y="1394" font-size="18" font-family="Arial, sans-serif" font-weight="700" fill="#16313b">Authorised Signatory</text>
+</svg>

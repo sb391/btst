@@ -1,0 +1,25 @@
+Invoice Number: INV-2026-1148
+Invoice Date: 13/03/2026
+Supplier Name: Deccan Industrial Supplies Pvt Ltd
+Supplier Address: 14 Industrial Layout, Hosur Road, Bengaluru, Karnataka 560095
+Supplier GSTIN: 29AACCD1148P1ZX
+Buyer Name: Starline Retail Distributors LLP
+Buyer Address: 102 Market Yard Road, Pune, Maharashtra 411037
+Buyer GSTIN: 27AATFS6621L1ZB
+Place Of Supply: Maharashtra
+PO Number: PO-7743-26
+Payment Terms: Net 21 days
+Vehicle Number: MH12QX4431
+E-Way Bill Number: 271008845612
+Description Qty Rate Amount HSN
+Refined cooking oil cartons 120 990.00 118800.00 151211
+Snack display units 24 583.33 13999.92 940360
+Taxable Value: 132799.92
+CGST: 11952.00
+SGST: 11952.00
+Grand Total: 156703.92
+Amount In Words: Rupees One Lakh Fifty Six Thousand Seven Hundred Four Only
+Bank Name: State Bank of India
+Account Number: 34022199088
+IFSC: SBIN0000456
+Authorised Signatory

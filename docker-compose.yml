@@ -1,32 +1,17 @@
 version: "3.9"
 
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: underwriting_workbench
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   app:
     build: .
     restart: unless-stopped
-    depends_on:
-      - db
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/underwriting_workbench?schema=public
+      DATABASE_URL: file:./dev.db
       APP_STORAGE_DIR: /app/storage/uploads
       LLM_PROVIDER: mock
       DEMO_USER_ROLE: ADMIN
+      NEXT_PUBLIC_APP_NAME: Invoice Intelligence Workbench
     ports:
       - "3000:3000"
     volumes:
       - .:/app
-
-volumes:
-  postgres_data:
+    command: sh -c "npm run db:push && npm run db:seed && npm run start"

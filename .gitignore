@@ -1,9 +1,12 @@
 .next
+.next_restart_*
+.next_stale_*
 node_modules
 .env
 coverage
 dist
 storage/uploads
+storage/local-state
 *.log
 .DS_Store
 prisma/dev.db

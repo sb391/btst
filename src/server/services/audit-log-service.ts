@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db";
+import { toPrismaJson } from "@/server/prisma-json";
 
 export async function createAuditLog(input: {
   caseId?: string;
@@ -6,7 +7,7 @@ export async function createAuditLog(input: {
   action: string;
   entityType: string;
   entityId: string;
-  metadata?: Record<string, unknown>;
+  metadata?: unknown;
 }) {
   try {
     await prisma.auditLog.create({
@@ -16,7 +17,7 @@ export async function createAuditLog(input: {
         action: input.action,
         entityType: input.entityType,
         entityId: input.entityId,
-        metadata: input.metadata
+        metadata: input.metadata ? toPrismaJson(input.metadata) : undefined
       }
     });
   } catch {

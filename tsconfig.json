@@ -24,6 +24,29 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "src/app/layout.tsx",
+    "src/app/not-found.tsx",
+    "src/app/page.tsx",
+    "src/app/reviews/**/*.tsx",
+    "src/app/settings/**/*.tsx",
+    "src/app/api/reviews/**/*.ts",
+    "src/components/invoice/**/*.tsx",
+    "src/components/layout/**/*.tsx",
+    "src/components/shared/**/*.tsx",
+    "src/components/ui/**/*.tsx",
+    "src/lib/format.ts",
+    "src/lib/invoice-*.ts",
+    "src/lib/utils.ts",
+    "src/types/**/*.d.ts",
+    "src/server/db.ts",
+    "src/server/prisma-json.ts",
+    "src/server/repositories/invoice-review-repository.ts",
+    "src/server/services/invoice-*.ts",
+    "prisma/seed.ts",
+    "vitest.config.ts",
+    ".next/types/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }

@@ -1,70 +1,56 @@
-import Link from "next/link";
-
-import { CaseIntakeForm } from "@/components/cases/case-intake-form";
+import { RecentReviewsPanel } from "@/components/invoice/recent-reviews-panel";
+import { UploadReviewPanel } from "@/components/invoice/upload-review-panel";
 import { InternalBanner } from "@/components/shared/internal-banner";
 import { MetricCard } from "@/components/shared/metric-card";
 import { PageHeader } from "@/components/shared/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { displayCurrency } from "@/lib/format";
-import { getAllCases } from "@/server/repositories/case-repository";
+import { listInvoiceReviews } from "@/server/repositories/invoice-review-repository";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function HomePage() {
-  const cases = await getAllCases();
-  const approvals = cases.filter((item) => item.recommendation.includes("APPROVE")).length;
-  const avgScore = Math.round(cases.reduce((sum, item) => sum + item.score, 0) / Math.max(cases.length, 1));
+  const reviews = await listInvoiceReviews();
+  const highRiskCount = reviews.filter((review) => review.overallHealthStatus === "HIGH_RISK").length;
+  const lowConfidenceCount = reviews.filter((review) => review.overallHealthStatus === "LOW_CONFIDENCE").length;
+  const averageExtraction = reviews.length
+    ? Math.round(reviews.reduce((sum, review) => sum + review.extractionConfidenceScore, 0) / reviews.length)
+    : 0;
 
   return (
     <div>
       <InternalBanner />
       <PageHeader
-        eyebrow="Borrower Intake"
-        title="Underwriting Intelligence Workbench"
-        description="Local-first internal dashboard for AI-assisted credit underwriting and trade verification. Deterministic rules, scored variables, and LLM narratives remain clearly separated."
-        action={
-          <Badge variant="secondary">
-            Desktop-first analyst workflow
-          </Badge>
-        }
+        eyebrow="Invoice Intelligence Workbench"
+        title="Upload an invoice and review what the system actually sees"
+        description="This internal analyst tool focuses only on invoice intelligence: OCR, structured extraction, rule-based validation, AI review, and visible scoring."
       />
 
       <div className="grid gap-4 lg:grid-cols-4">
-        <MetricCard label="Open cases" value={String(cases.length)} hint="Demo and persisted cases combined." trend="up" />
-        <MetricCard label="Average score" value={String(avgScore)} hint="Composite underwriting score across visible cases." />
-        <MetricCard label="Approval bias" value={`${approvals}/${cases.length}`} hint="Approve or approve-with-conditions recommendations." />
-        <MetricCard label="Typical limit" value={displayCurrency(4200000)} hint="Seeded demo recommendation level." />
+        <MetricCard
+          label="Stored reviews"
+          value={String(reviews.length)}
+          hint="Each invoice review is persisted locally for later inspection."
+        />
+        <MetricCard
+          label="Average extraction"
+          value={`${averageExtraction}`}
+          hint="Rules and AI become more useful when extraction quality is strong."
+        />
+        <MetricCard
+          label="High risk"
+          value={String(highRiskCount)}
+          hint="High-risk reviews deserve faster analyst attention."
+        />
+        <MetricCard
+          label="Low confidence"
+          value={String(lowConfidenceCount)}
+          hint="Low-confidence reads should be reviewed against the original file."
+        />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.25fr,0.75fr]">
-        <CaseIntakeForm />
-        <Card>
-          <CardHeader>
-            <CardTitle>Workbench modules</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-[20px] border border-border/70 bg-background/70 p-4">
-              <p className="font-medium">Credit underwriting engine</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Bureau parsing, GST normalization, bank statement analytics, configurable score weights, and LLM memo generation.
-              </p>
-            </div>
-            <div className="rounded-[20px] border border-border/70 bg-background/70 p-4">
-              <p className="font-medium">Invoice / trade verification engine</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                OCR-driven invoice extraction, authenticity scoring, trade matching, e-way bill placeholders, and fraud risk logic.
-              </p>
-            </div>
-            <div className="rounded-[20px] border border-border/70 bg-background/70 p-4">
-              <p className="font-medium">Auditability and learning hooks</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Case storage, analyst overrides, outcome labels, model versioning, prompt versioning, and future recalibration hooks.
-              </p>
-            </div>
-            <Link href="/cases" className="inline-flex text-sm font-semibold text-primary hover:underline">
-              Open case history
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="mt-6 grid gap-6 xl:grid-cols-[0.95fr,1.05fr]">
+        <UploadReviewPanel />
+        <RecentReviewsPanel reviews={reviews.slice(0, 6)} />
       </div>
     </div>
   );

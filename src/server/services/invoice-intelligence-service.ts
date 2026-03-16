@@ -4,11 +4,17 @@ import { clamp, safeNumber } from "@/lib/utils";
 const gstinPattern = /\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}\b/gi;
 
 function extractTextValue(text: string, labels: string[]) {
-  for (const label of labels) {
-    const pattern = new RegExp(`${label}[:\\s-]+(.+)`, "i");
-    const match = text.match(pattern);
-    if (match?.[1]) {
-      return match[1].split("\n")[0].trim();
+  const lines = text.split(/\r?\n/).map((line) => line.trim());
+
+  for (const line of lines) {
+    const normalized = line.toLowerCase();
+    for (const label of labels) {
+      if (normalized.startsWith(label.toLowerCase())) {
+        const value = line.slice(label.length).replace(/^[:\s-]+/, "").trim();
+        if (value) {
+          return value;
+        }
+      }
     }
   }
 
@@ -20,7 +26,7 @@ export function parseInvoiceDocument(text: string): {
   extractedFields: ExtractedFieldRecord[];
 } {
   const invoiceNumber = extractTextValue(text, ["invoice number", "invoice no", "invoice #"]) || "UNKNOWN-INVOICE";
-  const invoiceDate = extractTextValue(text, ["invoice date", "date"]) || new Date().toISOString().slice(0, 10);
+  const invoiceDate = extractTextValue(text, ["invoice date", "date"]);
   const supplierName = extractTextValue(text, ["supplier name", "seller"]) || "Unknown Supplier";
   const buyerName = extractTextValue(text, ["buyer name", "bill to"]) || "Unknown Buyer";
   const gstins = Array.from(new Set(text.match(gstinPattern) ?? []));
@@ -74,7 +80,7 @@ export function parseInvoiceDocument(text: string): {
 
   const invoice: InvoiceSummary = {
     invoiceNumber,
-    invoiceDate,
+    invoiceDate: invoiceDate || "",
     supplierName,
     buyerName,
     supplierGstin,
@@ -94,7 +100,7 @@ export function parseInvoiceDocument(text: string): {
 
   const extractedFields: ExtractedFieldRecord[] = [
     { section: "Invoice", field: "Invoice Number", value: invoiceNumber, confidence: 0.94 },
-    { section: "Invoice", field: "Invoice Date", value: invoiceDate, confidence: 0.85 },
+    { section: "Invoice", field: "Invoice Date", value: invoiceDate || "Not extracted", confidence: invoiceDate ? 0.85 : 0.35 },
     { section: "Invoice", field: "Supplier", value: supplierName, confidence: 0.8 },
     { section: "Invoice", field: "Buyer", value: buyerName, confidence: 0.8 },
     { section: "Invoice", field: "Taxable Value", value: String(taxableValue), confidence: 0.86 },
