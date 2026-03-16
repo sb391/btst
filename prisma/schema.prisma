@@ -1,0 +1,438 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  ANALYST
+}
+
+enum BorrowerType {
+  CORPORATE
+  DISTRIBUTOR
+  RETAILER
+}
+
+enum CaseStatus {
+  INTAKE
+  PROCESSING
+  REVIEW
+  DECIDED
+  ARCHIVED
+}
+
+enum DocumentType {
+  BUREAU_REPORT
+  BANK_STATEMENT
+  GST_PULL
+  INVOICE
+  PURCHASE_ORDER
+  EWAY_BILL
+  OTHER
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum RiskGrade {
+  A
+  B
+  C
+  D
+  E
+}
+
+enum Recommendation {
+  APPROVE
+  APPROVE_WITH_CONDITIONS
+  REFER_TO_ANALYST
+  REJECT
+}
+
+enum TradeMatchStatus {
+  STRONG_MATCH
+  PARTIAL_MATCH
+  MISMATCH
+  INSUFFICIENT_DATA
+}
+
+enum FraudSeverity {
+  RED
+  AMBER
+  GREEN
+}
+
+enum ScoreKind {
+  BUREAU
+  GST
+  BANK
+  BUSINESS_STABILITY
+  CONDUCT
+  FRAUD_INTEGRITY
+  COMPOSITE
+  INVOICE_AUTHENTICITY
+  TRADE_MATCH
+}
+
+enum DataOrigin {
+  EXTRACTED
+  MANUAL
+  API
+  SYSTEM
+}
+
+model User {
+  id              String            @id @default(cuid())
+  email           String            @unique
+  name            String
+  role            UserRole
+  correctedFields ExtractedField[]  @relation("FieldCorrections")
+  analystDecisions AnalystDecision[] @relation("AnalystDecisions")
+  notes           AnalystNote[]     @relation("AnalystNotes")
+  auditLogs       AuditLog[]        @relation("AuditActors")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model Borrower {
+  id           String             @id @default(cuid())
+  legalName    String
+  displayName  String?
+  borrowerType BorrowerType
+  gstin        String?            @unique
+  pan          String?
+  state        String?
+  anchorName   String?
+  dealerCode   String?
+  customerCode String?
+  metadata     Json?
+  cases        UnderwritingCase[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model UnderwritingCase {
+  id              String            @id @default(cuid())
+  caseNumber      String            @unique
+  borrowerId      String
+  borrower        Borrower          @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
+  status          CaseStatus        @default(INTAKE)
+  requestedAmount Decimal?          @db.Decimal(18, 2)
+  requestedTenorDays Int?
+  metadata        Json?
+  overallConfidence Float?
+  compositeScore  Float?
+  riskGrade       RiskGrade?
+  recommendation  Recommendation?
+  policyConfigId  String?
+  policyConfig    PolicyConfig?     @relation(fields: [policyConfigId], references: [id])
+  modelVersionId  String?
+  modelVersion    ModelVersion?     @relation(fields: [modelVersionId], references: [id])
+  promptVersionId String?
+  promptVersion   PromptVersion?    @relation(fields: [promptVersionId], references: [id])
+  documents       UploadedDocument[]
+  extractedFields ExtractedField[]
+  bureauSummary   BureauSummary?
+  gstSummary      GstSummary?
+  bankAnalytics   BankAnalytics?
+  invoices        InvoiceRecord[]
+  tradeChecks     TradeVerification[]
+  fraudFlags      FraudFlag[]
+  scores          ScoreSnapshot[]
+  llmMemos        LlmMemo[]
+  analystDecisions AnalystDecision[]
+  outcomes        RepaymentOutcome[]
+  notes           AnalystNote[]
+  auditLogs       AuditLog[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model UploadedDocument {
+  id                 String         @id @default(cuid())
+  caseId             String
+  underwritingCase   UnderwritingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  type               DocumentType
+  status             DocumentStatus @default(UPLOADED)
+  originalFileName   String
+  mimeType           String
+  sizeBytes          Int
+  storagePath        String
+  checksum           String?
+  extractionConfidence Float?
+  rawText            String?
+  rawPayload         Json?
+  processedPayload   Json?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model ExtractedField {
+  id              String            @id @default(cuid())
+  caseId          String
+  underwritingCase UnderwritingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  section         String
+  fieldKey        String
+  valueString     String?
+  valueNumber     Float?
+  valueJson       Json?
+  correctedValueString String?
+  correctedValueNumber Float?
+  correctedValueJson Json?
+  origin          DataOrigin        @default(EXTRACTED)
+  confidence      Float?
+  correctedById   String?
+  correctedBy     User?             @relation("FieldCorrections", fields: [correctedById], references: [id])
+  correctedAt     DateTime?
+  createdAt       DateTime          @default(now())
+}
+
+model BureauSummary {
+  id                 String            @id @default(cuid())
+  caseId             String            @unique
+  underwritingCase   UnderwritingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  score              Int?
+  activeLoans        Int               @default(0)
+  overdueHistory     Int               @default(0)
+  dpdPatterns        Json?
+  creditUtilization  Float?
+  unsecuredMix       Float             @default(0)
+  securedMix         Float             @default(0)
+  enquiryCount       Int               @default(0)
+  writtenOff         Boolean           @default(false)
+  settled            Boolean           @default(false)
+  loanVintageMonths  Int               @default(0)
+  extractionConfidence Float           @default(0.5)
+  rawPayload         Json?
+  processedPayload   Json?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+}
+
+model GstSummary {
+  id                    String            @id @default(cuid())
+  caseId                String            @unique
+  underwritingCase      UnderwritingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  legalName             String
+  gstin                 String
+  status                String
+  filingFrequency       String?
+  filingRegularity      Float             @default(0)
+  turnoverProxy         Float             @default(0)
+  gstrTrends            Json?
+  taxPaymentConsistency Float             @default(0)
+  registrationAgeMonths Int               @default(0)
+  state                 String?
+  businessType          String?
+  healthScore           Float             @default(0)
+  rawResponse           Json?
+  processedResponse     Json?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+}
+
+model BankAnalytics {
+  id                    String            @id @default(cuid())
+  caseId                String            @unique
+  underwritingCase      UnderwritingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  monthlyCredits        Json?
+  monthlyDebits         Json?
+  cashDepositRatio      Float             @default(0)
+  chequeBounceCount     Int               @default(0)
+  emiBounceCount        Int               @default(0)
+  averageBalance        Float             @default(0)
+  minBalance            Float             @default(0)
+  maxBalance            Float             @default(0)
+  inwardConsistency     Float             @default(0)
+  outwardConsistency    Float             @default(0)
+  topCounterparties     Json?
+  abnormalSpikes        Json?
+  seasonality           Json?
+  relatedPartySignals   Json?
+  healthScore           Float             @default(0)
+  extractionConfidence  Float             @default(0.5)
+  rawPayload            Json?
+  processedPayload      Json?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+}
+
+model InvoiceRecord {
+  id                  String            @id @default(cuid())
+  caseId              String
+  underwritingCase    UnderwritingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  documentId          String?
+  invoiceNumber       String
+  invoiceDate         DateTime?
+  supplierName        String
+  buyerName           String
+  supplierGstin       String?
+  buyerGstin          String?
+  taxableValue        Float             @default(0)
+  taxBreakup          Json?
+  totalValue          Float             @default(0)
+  hsnSac              Json?
+  lineItems           Json?
+  vehicleNumber       String?
+  eWayBillNumber      String?
+  completenessScore   Float             @default(0)
+  authenticityScore   Float             @default(0)
+  anomalyFlags        Json?
+  rawPayload          Json?
+  processedPayload    Json?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+}
+
+model TradeVerification {
+  id                  String            @id @default(cuid())
+  caseId              String
+  underwritingCase    UnderwritingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  invoiceId           String?
+  matchStatus         TradeMatchStatus
+  score               Float             @default(0)
+  checks              Json?
+  routePlausibility   String?
+  historicalNote      String?
+  rawPayload          Json?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+}
+
+model FraudFlag {
+  id                  String            @id @default(cuid())
+  caseId              String
+  underwritingCase    UnderwritingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  module              String
+  code                String
+  severity            FraudSeverity
+  reason              String
+  sourcePayload       Json?
+  createdAt           DateTime          @default(now())
+}
+
+model ScoreSnapshot {
+  id                  String            @id @default(cuid())
+  caseId              String
+  underwritingCase    UnderwritingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  kind                ScoreKind
+  score               Float
+  weight              Float?
+  riskGrade           RiskGrade?
+  rationale           String?
+  breakdown           Json?
+  metadata            Json?
+  createdAt           DateTime          @default(now())
+}
+
+model LlmMemo {
+  id                  String            @id @default(cuid())
+  caseId              String
+  underwritingCase    UnderwritingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  provider            String
+  modelVersion        String
+  promptVersion       String
+  summary             String
+  strengths           Json?
+  risks               Json?
+  contradictions      Json?
+  policyExceptions    Json?
+  nextQuestions       Json?
+  disclaimer          String
+  rawPayload          Json?
+  createdAt           DateTime          @default(now())
+}
+
+model AnalystDecision {
+  id                  String            @id @default(cuid())
+  caseId              String
+  underwritingCase    UnderwritingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  analystId           String
+  analyst             User              @relation("AnalystDecisions", fields: [analystId], references: [id], onDelete: Cascade)
+  recommendation      Recommendation
+  overrideReason      String?
+  conditions          Json?
+  approvedLimit       Float?
+  approvedTenorDays   Int?
+  pricingBand         String?
+  collateralRequirement String?
+  decidedAt           DateTime          @default(now())
+}
+
+model RepaymentOutcome {
+  id                  String            @id @default(cuid())
+  caseId              String
+  underwritingCase    UnderwritingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  observationDate     DateTime
+  dpd30               Boolean?
+  dpd60               Boolean?
+  fraudConfirmed      Boolean?
+  labels              Json?
+  createdAt           DateTime          @default(now())
+}
+
+model PolicyConfig {
+  id                  String            @id @default(cuid())
+  name                String
+  borrowerType        BorrowerType
+  version             String
+  weights             Json
+  rules               Json
+  active              Boolean           @default(true)
+  cases               UnderwritingCase[]
+  createdAt           DateTime          @default(now())
+}
+
+model ModelVersion {
+  id                  String            @id @default(cuid())
+  name                String
+  version             String
+  description         String?
+  config              Json?
+  active              Boolean           @default(true)
+  cases               UnderwritingCase[]
+  createdAt           DateTime          @default(now())
+}
+
+model PromptVersion {
+  id                  String            @id @default(cuid())
+  name                String
+  version             String
+  template            String
+  config              Json?
+  active              Boolean           @default(true)
+  cases               UnderwritingCase[]
+  createdAt           DateTime          @default(now())
+}
+
+model AnalystNote {
+  id                  String            @id @default(cuid())
+  caseId              String
+  underwritingCase    UnderwritingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  authorId            String
+  author              User              @relation("AnalystNotes", fields: [authorId], references: [id], onDelete: Cascade)
+  body                String
+  createdAt           DateTime          @default(now())
+}
+
+model AuditLog {
+  id                  String            @id @default(cuid())
+  caseId              String?
+  underwritingCase    UnderwritingCase? @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  actorId             String?
+  actor               User?             @relation("AuditActors", fields: [actorId], references: [id])
+  action              String
+  entityType          String
+  entityId            String
+  metadata            Json?
+  createdAt           DateTime          @default(now())
+}

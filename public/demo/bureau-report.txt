@@ -1,0 +1,11 @@
+CIBIL Score: 772
+Active Loans: 4
+Overdues: 0
+Credit Utilization: 32
+Secured Mix: 72
+Unsecured Mix: 28
+Enquiry Count: 3
+Loan Vintage: 48
+DPD History: 000 000 030 000 000 000
+Written Off: No
+Settled: No

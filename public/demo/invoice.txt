@@ -1,0 +1,14 @@
+Invoice Number: INV-440112
+Invoice Date: 2026-03-05
+Supplier Name: Britannia Industries Ltd
+Buyer Name: Shree Ganesh Distributors LLP
+Supplier GSTIN: 29AAACB5382M1ZS
+Buyer GSTIN: 27ABAFS1234F1Z6
+Taxable Value: 1865000
+CGST: 167850
+SGST: 167850
+Invoice Total: 2200700
+Vehicle Number: MH12AB4455
+E-Way Bill Number: 281004455662
+HSN: 190531
+HSN: 190590
