@@ -46,6 +46,7 @@ export function computeInvoiceScores(input: {
   const passCount = validationResults.filter((item) => item.status === "PASS").length;
   const warnCount = validationResults.filter((item) => item.status === "WARN").length;
   const failCount = validationResults.filter((item) => item.status === "FAIL").length;
+  const parserMissCount = document.extractionDiagnostics?.parserMissSignals.length ?? 0;
   const averageFieldConfidence = averageExtractedFieldConfidence(document);
   const extractionConfidenceScore = clamp(
     (ocr.averageConfidence * 0.55 + averageFieldConfidence * 0.45) * 100,
@@ -73,7 +74,9 @@ export function computeInvoiceScores(input: {
   );
 
   let overallHealthStatus: InvoiceHealthStatus = "GOOD";
-  if (extractionConfidenceScore < 45 || ocr.qualitySignals.lowReadability) {
+  if (parserMissCount >= 2 && ocr.averageConfidence >= 0.65) {
+    overallHealthStatus = "LOW_CONFIDENCE";
+  } else if (extractionConfidenceScore < 45 || ocr.qualitySignals.lowReadability) {
     overallHealthStatus = "LOW_CONFIDENCE";
   } else if (riskScore >= 70 || failCount >= 3) {
     overallHealthStatus = "HIGH_RISK";
@@ -100,6 +103,7 @@ export function computeInvoiceScores(input: {
         [
           `OCR average confidence: ${Math.round(ocr.averageConfidence * 100)}`,
           `Average field confidence: ${Math.round(averageFieldConfidence * 100)}`,
+          parserMissCount ? `${parserMissCount} parser-miss signals were detected.` : "No parser-miss signals were detected.",
           ocr.qualitySignals.lowReadability ? "Readability signal is weak." : "Readability signal is acceptable."
         ]
       ),

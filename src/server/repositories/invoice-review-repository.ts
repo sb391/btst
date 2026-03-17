@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { Prisma } from "@prisma/client";
 
 import type {
@@ -12,8 +14,17 @@ import type {
 import { prisma } from "@/server/db";
 
 function createReviewNumber() {
-  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
-  return `INVREV-${stamp}`;
+  const now = new Date();
+  const stamp = [
+    now.getUTCFullYear(),
+    String(now.getUTCMonth() + 1).padStart(2, "0"),
+    String(now.getUTCDate()).padStart(2, "0"),
+    String(now.getUTCHours()).padStart(2, "0"),
+    String(now.getUTCMinutes()).padStart(2, "0"),
+    String(now.getUTCSeconds()).padStart(2, "0"),
+    String(now.getUTCMilliseconds()).padStart(3, "0")
+  ].join("");
+  return `INVREV-${stamp}-${randomUUID().slice(0, 6).toUpperCase()}`;
 }
 
 function stringifyJson(value: unknown) {

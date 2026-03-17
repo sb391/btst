@@ -1,14 +1,49 @@
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { basename } from "node:path";
-
-import pdfParse from "pdf-parse";
 
 import type {
   OcrDocumentResult,
+  OcrLayoutLine,
   OcrPageResult,
   OcrProviderSetting,
-  OcrQualitySignals
+  OcrQualitySignals,
+  OcrTextItem
 } from "@/lib/invoice-types";
+
+const nodeRequire = createRequire(import.meta.url);
+
+type PdfJsTextContentItem = {
+  str: string;
+  transform: number[];
+  width?: number;
+  height?: number;
+};
+
+type PdfJsPage = {
+  getTextContent(options: {
+    normalizeWhitespace: boolean;
+    disableCombineTextItems: boolean;
+  }): Promise<{ items: PdfJsTextContentItem[] }>;
+};
+
+type PdfJsDocument = {
+  numPages: number;
+  getPage(pageNumber: number): Promise<PdfJsPage>;
+  getMetadata(): Promise<{
+    info?: Record<string, unknown> | null;
+    metadata?: Record<string, unknown> | null;
+  } | null>;
+  destroy(): void;
+};
+
+type PdfJsModule = {
+  version: string;
+  disableWorker: boolean;
+  getDocument(data: Buffer): Promise<PdfJsDocument>;
+};
+
+let pdfJsModule: PdfJsModule | null = null;
 
 interface StoredInvoiceFile {
   originalFileName: string;
@@ -23,6 +58,14 @@ interface InvoiceOcrProvider {
   extract(file: StoredInvoiceFile): Promise<OcrDocumentResult | null>;
 }
 
+function getPdfJs() {
+  if (!pdfJsModule) {
+    pdfJsModule = nodeRequire("pdf-parse/lib/pdf.js/v1.10.100/build/pdf.js") as PdfJsModule;
+  }
+
+  return pdfJsModule;
+}
+
 function sanitizeText(raw: string) {
   return raw
     .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, " ")
@@ -32,6 +75,99 @@ function sanitizeText(raw: string) {
     .filter(Boolean)
     .join("\n")
     .trim();
+}
+
+function buildLayoutPage(
+  pageNumber: number,
+  items: PdfJsTextContentItem[]
+): {
+  text: string;
+  layoutItems: OcrTextItem[];
+  layoutLines: OcrLayoutLine[];
+} {
+  const legacyText = (() => {
+    let lastY: number | undefined;
+    let text = "";
+
+    for (const item of items) {
+      const value = item.str ?? "";
+
+      if (!value.trim()) {
+        continue;
+      }
+
+      if (lastY === undefined || lastY === item.transform?.[5]) {
+        text += value;
+      } else {
+        text += `\n${value}`;
+      }
+
+      lastY = item.transform?.[5];
+    }
+
+    return sanitizeText(text);
+  })();
+
+  const layoutItems = items
+    .map((item) => ({
+      text: item.str,
+      x: Number((item.transform?.[4] ?? 0).toFixed(2)),
+      y: Number((item.transform?.[5] ?? 0).toFixed(2)),
+      width: Number((item.width ?? 0).toFixed(2)),
+      height: Number(Math.abs(item.height ?? item.transform?.[0] ?? 0).toFixed(2))
+    }))
+    .filter((item) => Boolean(item.text?.trim()))
+    .sort((left, right) => {
+      if (Math.abs(left.y - right.y) > 2) {
+        return right.y - left.y;
+      }
+
+      return left.x - right.x;
+    });
+
+  const layoutLines: OcrLayoutLine[] = [];
+
+  for (const item of layoutItems) {
+    const previousLine = layoutLines[layoutLines.length - 1];
+
+    if (previousLine && Math.abs(previousLine.y - item.y) <= Math.max(2, item.height * 0.55 || 2)) {
+      const currentRight = previousLine.x + previousLine.width;
+      const gap = item.x - currentRight;
+
+      if (gap > 72) {
+        layoutLines.push({
+          text: item.text,
+          x: item.x,
+          y: item.y,
+          width: item.width,
+          height: item.height
+        });
+        continue;
+      }
+
+      previousLine.text += gap > 3 ? ` ${item.text}` : item.text;
+      previousLine.width = Number(Math.max(previousLine.width, item.x + item.width - previousLine.x).toFixed(2));
+      previousLine.height = Number(Math.max(previousLine.height, item.height).toFixed(2));
+      continue;
+    }
+
+    layoutLines.push({
+      text: item.text,
+      x: item.x,
+      y: item.y,
+      width: item.width,
+      height: item.height
+    });
+  }
+
+  return {
+    text: legacyText,
+    layoutItems,
+    layoutLines: layoutLines.map((line) => ({
+      ...line,
+      text: sanitizeText(line.text)
+    }))
+  };
 }
 
 function qualitySignalsFromText(text: string): {
@@ -82,20 +218,39 @@ class PdfTextLayerProvider implements InvoiceOcrProvider {
   async extract(file: StoredInvoiceFile): Promise<OcrDocumentResult | null> {
     try {
       const buffer = await readFile(file.storagePath);
-      const parsed = await pdfParse(buffer);
-      const text = sanitizeText(parsed.text ?? "");
+      const PDFJS = getPdfJs();
+      PDFJS.disableWorker = true;
+      const document = await PDFJS.getDocument(buffer);
+      const metadata = await document.getMetadata().catch(() => null);
+      const pages: OcrPageResult[] = [];
+
+      for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+        const page = await document.getPage(pageNumber);
+        const textContent = await page.getTextContent({
+          normalizeWhitespace: false,
+          disableCombineTextItems: true
+        });
+        const builtPage = buildLayoutPage(pageNumber, textContent.items);
+        const pageConfidence = qualitySignalsFromText(builtPage.text).averageConfidence;
+
+        pages.push({
+          pageNumber,
+          text: builtPage.text,
+          confidence: pageConfidence,
+          layoutItems: builtPage.layoutItems,
+          layoutLines: builtPage.layoutLines
+        });
+      }
+
+      const text = sanitizeText(pages.map((page) => page.text).join("\n\n"));
 
       if (!text) {
+        document.destroy();
         return null;
       }
 
       const { averageConfidence, qualitySignals } = qualitySignalsFromText(text);
-      const pageCount = Number(parsed.numpages ?? 1) || 1;
-      const pages: OcrPageResult[] = Array.from({ length: pageCount }, (_, index) => ({
-        pageNumber: index + 1,
-        text,
-        confidence: averageConfidence
-      }));
+      document.destroy();
 
       return {
         providerKey: this.key,
@@ -104,9 +259,10 @@ class PdfTextLayerProvider implements InvoiceOcrProvider {
         pages,
         averageConfidence,
         rawPayload: {
-          info: parsed.info ?? {},
-          metadata: parsed.metadata ?? null,
-          version: parsed.version ?? null
+          info: metadata?.info ?? {},
+          metadata: metadata?.metadata ?? null,
+          version: PDFJS.version,
+          pageCount: pages.length
         },
         qualitySignals
       };

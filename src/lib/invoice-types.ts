@@ -2,16 +2,42 @@ export type InvoiceHealthStatus = "GOOD" | "NEEDS_REVIEW" | "HIGH_RISK" | "LOW_C
 export type InvoiceValidationStatus = "PASS" | "WARN" | "FAIL";
 export type InvoiceValidationSeverity = "LOW" | "MEDIUM" | "HIGH";
 export type ReviewStatus = "UPLOADED" | "PROCESSING" | "COMPLETED" | "FAILED";
+export type InvoiceDocumentFamily =
+  | "STANDARD_GST_GOODS"
+  | "GST_SERVICE"
+  | "PINE_LABS_POS"
+  | "PAYU_MERCHANT"
+  | "BVALUE_PARTNER"
+  | "SETTLEMENT_STATEMENT"
+  | "GENERIC";
 export type InvoiceReviewRecommendation =
   | "LOOKS_IN_ORDER"
   | "MINOR_ISSUES_REVIEW_RECOMMENDED"
   | "SUSPICIOUS_OR_INCOMPLETE"
   | "LOW_CONFIDENCE_MANUAL_REVIEW_REQUIRED";
 
+export interface OcrTextItem {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface OcrLayoutLine {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface OcrPageResult {
   pageNumber: number;
   text: string;
   confidence: number;
+  layoutItems?: OcrTextItem[];
+  layoutLines?: OcrLayoutLine[];
 }
 
 export interface OcrQualitySignals {
@@ -82,7 +108,23 @@ export interface InvoiceTaxDetails {
   amountInWords?: string;
 }
 
+export interface InvoiceDetectedSection {
+  key: string;
+  label: string;
+  text: string;
+  lines: string[];
+  pageNumber?: number;
+  confidence: number;
+}
+
+export interface InvoiceExtractionDiagnostics {
+  parserLowConfidence: boolean;
+  parserMissSignals: string[];
+  evidenceSignals: string[];
+}
+
 export interface NormalizedInvoiceDocument {
+  family?: InvoiceDocumentFamily;
   supplier: InvoiceParty;
   buyer: InvoiceParty;
   invoiceNumber?: string;
@@ -98,6 +140,8 @@ export interface NormalizedInvoiceDocument {
   taxDetails: InvoiceTaxDetails;
   rawText: string;
   extractedFields: InvoiceFieldValue[];
+  sections?: InvoiceDetectedSection[];
+  extractionDiagnostics?: InvoiceExtractionDiagnostics;
   qualitySignals: OcrQualitySignals;
 }
 

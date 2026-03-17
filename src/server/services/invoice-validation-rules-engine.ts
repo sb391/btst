@@ -34,6 +34,67 @@ function parseDate(value?: string) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function hasMalformedGstinSignal(rawText: string) {
+  const lines = rawText.split(/\r?\n/);
+
+  for (const line of lines) {
+    if (!/(gstin|gst no|gstin\/uid|gstin\/uin)/i.test(line)) {
+      continue;
+    }
+
+    const stripped = line
+      .replace(/.*?(gstin|gst no|gstin\/uid|gstin\/uin)\s*[:\-]?\s*/i, "")
+      .trim();
+
+    if (!stripped || /^pan:?$/i.test(stripped)) {
+      continue;
+    }
+
+    const embeddedValidGstin = stripped.match(/\d{2}[A-Z]{5}\d{4}[A-Z][A-Z0-9]Z[A-Z0-9]/i)?.[0];
+
+    if (embeddedValidGstin && gstinPattern.test(embeddedValidGstin)) {
+      gstinPattern.lastIndex = 0;
+      continue;
+    }
+
+    gstinPattern.lastIndex = 0;
+
+    const suspiciousToken = stripped.match(/[A-Z0-9]{10,}/i)?.[0];
+    if (suspiciousToken) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isLikelyServiceInvoice(document: NormalizedInvoiceDocument) {
+  if (
+    document.family === "GST_SERVICE" ||
+    document.family === "PINE_LABS_POS" ||
+    document.family === "PAYU_MERCHANT" ||
+    document.family === "BVALUE_PARTNER"
+  ) {
+    return true;
+  }
+
+  const rawText = document.rawText.toLowerCase();
+  const serviceDescriptionSignals = document.lineItems.filter((item) =>
+    /(service|charges|consulting|support|subscription|bot|login hrs|utilised|pricing|data sharing|campaign|marketing|growth plan|enrich)/i.test(
+      item.description ?? ""
+    )
+  ).length;
+  const hasSacSignals =
+    rawText.includes("sac") ||
+    rawText.includes("transaction type:services") ||
+    rawText.includes("goods / services") ||
+    rawText.includes("period:-") ||
+    /data ?sharing|campaign|marketing/i.test(rawText) ||
+    document.lineItems.some((item) => (item.hsnSac?.length ?? 0) === 6);
+
+  return hasSacSignals && (serviceDescriptionSignals > 0 || /pinelabs|truecaller|payu/i.test(rawText));
+}
+
 export function runInvoiceValidationRules(input: {
   ocr: OcrDocumentResult;
   document: NormalizedInvoiceDocument;
@@ -72,6 +133,8 @@ export function runInvoiceValidationRules(input: {
     document.lineItems.length > 0
       ? document.lineItems.reduce((sum, item) => sum + item.confidence, 0) / document.lineItems.length
       : 0;
+  const likelyServiceInvoice = isLikelyServiceInvoice(document);
+  const parserMissSignals = document.extractionDiagnostics?.parserMissSignals ?? [];
 
   results.push(
     document.invoiceNumber
@@ -125,8 +188,10 @@ export function runInvoiceValidationRules(input: {
 
   const supplierGstinValid = !document.supplier.gstin || gstinPattern.test(document.supplier.gstin);
   const buyerGstinValid = !document.buyer.gstin || gstinPattern.test(document.buyer.gstin);
+  gstinPattern.lastIndex = 0;
+  const malformedGstinSignal = hasMalformedGstinSignal(document.rawText);
   results.push(
-    supplierGstinValid && buyerGstinValid
+    supplierGstinValid && buyerGstinValid && !malformedGstinSignal
       ? result("gstin_format_valid", "PASS", "LOW", "Visible GSTINs match expected format.", ["supplier_gstin", "buyer_gstin"])
       : result("gstin_format_valid", "FAIL", "HIGH", "One or more GSTINs are badly formatted.", ["supplier_gstin", "buyer_gstin"])
   );
@@ -165,7 +230,7 @@ export function runInvoiceValidationRules(input: {
   );
 
   results.push(
-    (document.taxDetails.totalAmount ?? 0) >= 50000 && !document.eWayBillNumber
+    (document.taxDetails.totalAmount ?? 0) >= 50000 && !document.eWayBillNumber && !likelyServiceInvoice
       ? result("eway_bill_present_or_not_required", "WARN", "MEDIUM", "E-way bill is missing for a higher-value invoice.", ["eway_bill_number", "total_amount"])
       : result("eway_bill_present_or_not_required", "PASS", "LOW", "E-way bill is present or not obviously required.", ["eway_bill_number"])
   );
@@ -202,6 +267,28 @@ export function runInvoiceValidationRules(input: {
     /amount in words/i.test(document.rawText) && !document.taxDetails.amountInWords
       ? result("amount_in_words_detected_if_expected", "WARN", "LOW", "Amount in words label exists but the value was not extracted clearly.", ["amount_in_words"])
       : result("amount_in_words_detected_if_expected", "PASS", "LOW", "Amount in words is present or the format does not make it relevant.", ["amount_in_words"])
+  );
+
+  results.push(
+    parserMissSignals.length
+      ? result(
+          "parser_evidence_alignment",
+          "WARN",
+          "HIGH",
+          "Raw OCR contains field evidence that the structured parser did not capture cleanly.",
+          parserMissSignals,
+          {
+            parserMissSignals,
+            evidenceSignals: document.extractionDiagnostics?.evidenceSignals ?? []
+          }
+        )
+      : result(
+          "parser_evidence_alignment",
+          "PASS",
+          "LOW",
+          "Structured extraction is aligned with the visible OCR evidence.",
+          ["structured_extraction"]
+        )
   );
 
   results.push(
